@@ -106,8 +106,17 @@ if [ "$UNINSTALL" = "1" ]; then
 fi
 
 [ -n "$TOKEN" ] && [ -z "$SERVER" ] && die "--token requires --server"
-# Full setup is the default when a token is provided
-[ -z "$WITH_SERVICE" ] && { [ -n "$TOKEN" ] && WITH_SERVICE=1 || WITH_SERVICE=0; }
+
+# Upgrade detection: an existing service means we refresh the managed worker
+# copy and restart, even without a token.
+SERVICE_PRESENT=0
+[ "$os" = "linux" ] && [ -f "$UNIT" ] && SERVICE_PRESENT=1
+[ "$os" = "darwin" ] && [ -f "$PLIST" ] && SERVICE_PRESENT=1
+
+# Full setup is the default when a token is provided or a service already exists
+if [ -z "$WITH_SERVICE" ]; then
+  if [ -n "$TOKEN" ] || [ "$SERVICE_PRESENT" = "1" ]; then WITH_SERVICE=1; else WITH_SERVICE=0; fi
+fi
 
 arch="$(uname -m)"
 case "$arch" in
@@ -233,11 +242,13 @@ if [ -n "$TOKEN" ]; then
   fi
 fi
 
-# --- start ------------------------------------------------------------------
-if [ "$SERVICE_READY" = "1" ] && [ "$ENROLLED" = "1" ]; then
+# --- start / restart --------------------------------------------------------
+if [ "$SERVICE_READY" = "1" ] && { [ "$ENROLLED" = "1" ] || [ -f "$CONFIG" ]; }; then
   echo "starting the agent"
   if [ "$os" = "linux" ]; then
-    $SUDO systemctl enable --now apipact-agent
+    $SUDO systemctl enable apipact-agent >/dev/null 2>&1 || true
+    # restart (not enable --now) so upgrades swap in the new binaries
+    $SUDO systemctl restart apipact-agent
     echo
     echo "Done. The agent runs as a systemd service and starts at boot."
     echo "  status:    systemctl status apipact-agent"
