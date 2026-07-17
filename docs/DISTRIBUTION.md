@@ -22,15 +22,36 @@ maintainer steps are in [RELEASING.md](RELEASING.md).
 
 ### 1. Install script (bare host / VM)
 
+**Full setup in one line** — install, enroll, boot-persistent service, start
+(the token comes from the console, Settings → Agents → New Agent):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/APIpact/apipact-agent/main/scripts/install.sh \
+  | sh -s -- --token <TOKEN> --server https://console.apipact.dev
+```
+
+On Linux this installs a hardened systemd service; on macOS a launchd daemon.
+Both start at boot and keep the agent running.
+
+Binaries only (no enroll, no service):
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/APIpact/apipact-agent/main/scripts/install.sh | sh
-# or pin a version and install the systemd service:
-curl -fsSL .../scripts/install.sh | sh -s -- --version v1.2.3 --systemd
+# pin a version / add the service without enrolling:
+curl -fsSL .../scripts/install.sh | sh -s -- --version v1.2.3 --service
+```
+
+**Uninstall** the same way (config/keys survive unless you `--purge`):
+
+```bash
+curl -fsSL .../scripts/install.sh | sh -s -- --uninstall          # keep enrollment config
+curl -fsSL .../scripts/install.sh | sh -s -- --uninstall --purge  # remove everything
 ```
 
 It detects your OS/arch, downloads the three binaries, **verifies their SHA-256**
-against the release `SHA256SUMS`, installs them to `/usr/local/bin`, and (with
-`--systemd`) installs the [service unit](../deploy/systemd/apipact-agent.service).
+against the release `SHA256SUMS`, and installs them to `/usr/local/bin`. The
+Linux service is the hardened [unit file](../deploy/systemd/apipact-agent.service)
+running as the dedicated `apipact` system user.
 
 ### 2. Manual binary install
 
