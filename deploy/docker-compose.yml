@@ -1,0 +1,29 @@
+# APIPact agent via container. In containers, self-update is handled by pulling a
+# new image tag (update.mode = "external" in the config), not by the supervisor.
+#
+#   1. Enroll once to produce agent.json (run agentctl on any host, or exec into
+#      the container), and set "update": { "mode": "external" } in it.
+#   2. Mount it read-only and run:  docker compose up -d
+#   3. To update: bump the image tag below and `docker compose up -d`.
+
+services:
+  apipact-agent:
+    image: ghcr.io/apipact/apipact-agent:stable   # pin to :vX.Y.Z in production
+    container_name: apipact-agent
+    restart: unless-stopped
+    # Config holds private keys — mount it read-only.
+    volumes:
+      - ./agent.json:/etc/apipact/agent.json:ro
+      - apipact-state:/var/lib/apipact
+    environment:
+      APIPACT_CONFIG: /etc/apipact/agent.json
+      APIPACT_LOG_LEVEL: info
+    # Outbound-only; no ports are published. The health server is loopback-only.
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+volumes:
+  apipact-state:

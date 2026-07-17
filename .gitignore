@@ -1,0 +1,7 @@
+/bin/
+*.prev
+agent.json
+dedupe.json
+*.test
+coverage.out
+.DS_Store

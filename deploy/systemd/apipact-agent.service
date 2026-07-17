@@ -1,0 +1,46 @@
+[Unit]
+Description=APIPact remote API-test executor agent
+Documentation=https://github.com/APIpact/apipact-agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=apipact
+Group=apipact
+
+# The supervisor owns the worker's lifecycle and self-update. The supervisor
+# binary itself is stable and lives in /usr/local/bin; the *worker* it replaces
+# on update lives in the agent-owned, writable state dir so self-update can swap
+# it atomically under the hardening below.
+ExecStart=/usr/local/bin/apipact-supervisor --config /etc/apipact/agent.json --state /var/lib/apipact/dedupe.json
+Environment=APIPACT_WORKER_BIN=/var/lib/apipact/apipact-worker
+Environment=APIPACT_HEALTH_ADDR=127.0.0.1:9099
+Environment=APIPACT_LOG_LEVEL=info
+
+# The supervisor manages worker restarts internally; restart the supervisor
+# itself only if it exits.
+Restart=on-failure
+RestartSec=5
+# Graceful drain: give in-flight jobs time to finish on stop/update.
+TimeoutStopSec=45
+KillMode=mixed
+
+# --- hardening -------------------------------------------------------------
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# Writable paths: the config dir and the state dir (which also holds the managed
+# worker binary, so binary self-update can atomically swap it).
+ReadWritePaths=/etc/apipact /var/lib/apipact
+# Outbound-only agent: no need for privileged ports.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
