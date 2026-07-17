@@ -296,6 +296,11 @@ func (w *Worker) onControl(m pushflo.Message) {
 		w.log.Warn("control message is not an envelope", "err", err)
 		return
 	}
+	// The relay echoes our own heartbeat acks back on this channel; they are
+	// signed with our key, not a cloud signer — ignore them silently.
+	if env.SignKeyID != "" && env.SignKeyID == w.cfg.Keys.SignKeyID {
+		return
+	}
 	var ctl protocol.ControlMessage
 	if err := w.suite.Opener.OpenJSON(env, &ctl); err != nil {
 		w.log.Warn("rejected control message", "err", err)
