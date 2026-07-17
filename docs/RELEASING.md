@@ -45,6 +45,18 @@ the stable manifests, and vice-versa.
    (HSM / secrets manager) — losing it breaks self-update for the fleet.
 4. Enable **GitHub Pages** for the repo (source: `gh-pages` branch).
 
+### Current fleet-signing key (public)
+
+The active release-signing **public** key — safe to publish; this is what agents
+verify manifests against. The matching private half is the CI secret
+`RELEASE_SIGN_PRIVATE_B64` (never committed).
+
+```
+RELEASE_SIGN_PUBLIC_B64=ckyj4Kns908HphK/LGcnKI+jBCPjwXHmEVZakfrF+oE=
+```
+
+Update this block if the key is ever rotated.
+
 ## Cutting a release
 
 ```bash
